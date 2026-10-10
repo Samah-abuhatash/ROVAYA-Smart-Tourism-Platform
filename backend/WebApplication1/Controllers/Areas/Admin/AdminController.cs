@@ -1,20 +1,25 @@
 ﻿using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Rovaya.BLL.Service.Recommendations;
 using Rovaya.BLL.Service.TourismGuide;
+using Rovaya.DAL.DTO.Request.Auth;
+using Rovaya.DAL.DTO.Request.Recommendations;
 using Rovaya.DAL.DTO.Request.TourismGuid;
 
 namespace Rovaya.PL.Controllers.Areas.Admin
 {
     [ApiController]
     [Route("api/[controller]")]
-    [Authorize] // يضمن أن فقط المستخدمين المصرح لهم يمكنهم الوصول
+    [Authorize ] // يضمن أن فقط المستخدمين المصرح لهم يمكنهم الوصول
     public class AdminController : ControllerBase
     {
         private readonly ITourismGuidService _tourismService;
+        private readonly IRecommendationService _recommendationService;
 
-        public AdminController(ITourismGuidService tourismService)
+        public AdminController(ITourismGuidService tourismService , IRecommendationService recommendationService)
         {
             _tourismService = tourismService;
+            _recommendationService = recommendationService;
         }
 
         // ================= مساعدات معالجة الأخطاء (Error Handling Helpers) =================
@@ -390,5 +395,96 @@ namespace Rovaya.PL.Controllers.Areas.Admin
                 return HandleException(ex, "فشل في جلب تفاصيل قسم المدينة");
             }
         }
+
+
+
+        // ================= Recommendations Management =================
+
+        [HttpPost("create-recommendation")]
+        public async Task<IActionResult> CreateRecommendation([FromBody] CreateRecommendationRequest request)
+        {
+            try
+            {
+                if (!ModelState.IsValid) return HandleModelState();
+
+                var result = await _recommendationService.CreateRecommendationAsync(User, request);
+                if (!result.Success) return BadRequest(result);
+
+                return Ok(new { success = true, message = result.Message, data = result });
+            }
+            catch (Exception ex)
+            {
+                return HandleException(ex, "فشل في إنشاء التوصية");
+            }
+        }
+
+        [HttpPut("update-recommendation")]
+        public async Task<IActionResult> UpdateRecommendation([FromBody] UpdateRecommendationRequest request)
+        {
+            try
+            {
+                if (!ModelState.IsValid) return HandleModelState();
+
+                var result = await _recommendationService.UpdateRecommendationAsync(User, request);
+                if (!result.Success) return BadRequest(result);
+
+                return Ok(new { success = true, message = result.Message });
+            }
+            catch (Exception ex)
+            {
+                return HandleException(ex, "فشل في تحديث التوصية");
+            }
+        }
+
+        [HttpDelete("delete-recommendation/{id}")]
+        public async Task<IActionResult> DeleteRecommendation(int id)
+        {
+            try
+            {
+                var result = await _recommendationService.DeleteRecommendationAsync(User, id);
+                if (!result.Success) return BadRequest(result);
+
+                return Ok(new { success = true, message = result.Message });
+            }
+            catch (Exception ex)
+            {
+                return HandleException(ex, "فشل في حذف التوصية");
+            }
+        }
+
+        [HttpGet("get-all-recommendations")]
+        public async Task<IActionResult> GetAllRecommendations([FromQuery] RecommendationFilterRequest filter)
+        {
+            try
+            {
+                var result = await _recommendationService.GetAllRecommendationsAsync(User, filter);
+                if (!result.Success) return BadRequest(result);
+
+                return Ok(new { success = true, data = result });
+            }
+            catch (Exception ex)
+            {
+                return HandleException(ex, "فشل في جلب التوصيات");
+            }
+        }
+
+        [HttpGet("get-recommendation/{id}")]
+        public async Task<IActionResult> GetRecommendationById(int id)
+        {
+            try
+            {
+                var result = await _recommendationService.GetRecommendationByIdAsync(User, id);
+                if (!result.Success) return BadRequest(result);
+
+                return Ok(new { success = true, data = result });
+            }
+            catch (Exception ex)
+            {
+                return HandleException(ex, "فشل في جلب تفاصيل التوصية");
+            }
+        }
+
+
+
     }
 }
